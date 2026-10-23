@@ -1,0 +1,95 @@
+package za.co.richfield.smartpantry.data;
+
+import android.content.ContentValues;
+import android.database.sqlite.SQLiteDatabase;
+
+final class RecipeSeeder {
+    private RecipeSeeder() { }
+
+    static void seed(SQLiteDatabase db) {
+        insert(db, "Tomato Egg Skillet", "A quick tomato and egg breakfast.",
+                "1. Dice and soften the onion.\n2. Add chopped tomatoes and simmer for 8 minutes.\n3. Make wells, add eggs, cover and cook until set.",
+                req("tomato", 2, "pieces"), req("egg", 2, "pieces"), req("onion", 1, "piece"));
+        insert(db, "Garlic Tomato Pasta", "Pasta with a simple garlic tomato sauce.",
+                "1. Boil the pasta until tender.\n2. Warm chopped tomatoes with minced garlic.\n3. Toss the pasta through the sauce.",
+                req("pasta", 200, "g"), req("tomato", 2, "pieces"), req("garlic", 2, "cloves"));
+        insert(db, "Potato and Onion Hash", "Crisp pan-fried potato with onion.",
+                "1. Dice the potatoes and onion.\n2. Pan-fry the potatoes until golden and cooked through.\n3. Add onion and cook until soft.",
+                req("potato", 2, "pieces"), req("onion", 1, "piece"), req("oil", 1, "tbsp"));
+        insert(db, "Chickpea Tomato Curry", "A warming chickpea and tomato curry.",
+                "1. Soften the onion with curry powder.\n2. Add tomatoes and chickpeas.\n3. Simmer for 15 minutes and serve.",
+                req("chickpea", 400, "g"), req("tomato", 2, "pieces"), req("onion", 1, "piece"), req("curry powder", 1, "tbsp"));
+        insert(db, "Spinach Omelette", "A simple omelette with spinach.",
+                "1. Beat the eggs.\n2. Wilt spinach in a pan.\n3. Pour in eggs and cook gently until set.",
+                req("egg", 2, "pieces"), req("spinach", 50, "g"), req("milk", 30, "ml"));
+        insert(db, "Carrot Ginger Soup", "Smooth carrot soup with fresh ginger.",
+                "1. Chop carrots and onion.\n2. Simmer with stock and ginger until tender.\n3. Blend until smooth.",
+                req("carrot", 300, "g"), req("onion", 1, "piece"), req("ginger", 10, "g"), req("vegetable stock", 500, "ml"));
+        insert(db, "Tuna Sweetcorn Rice", "A filling rice bowl with tuna and sweetcorn.",
+                "1. Cook rice according to its packet.\n2. Drain tuna and sweetcorn.\n3. Fold together and season.",
+                req("rice", 150, "g"), req("tuna", 1, "can"), req("sweetcorn", 100, "g"));
+        insert(db, "Banana Oat Pancakes", "Soft pancakes made with banana and oats.",
+                "1. Mash the banana.\n2. Mix with egg, oats and milk.\n3. Fry small pancakes until golden on both sides.",
+                req("banana", 1, "piece"), req("egg", 1, "piece"), req("oats", 60, "g"), req("milk", 60, "ml"));
+        insert(db, "Lentil Tomato Stew", "A hearty lentil stew with tomato.",
+                "1. Soften onion and garlic.\n2. Add lentils, tomatoes and stock.\n3. Simmer until the lentils are tender.",
+                req("red lentils", 150, "g"), req("tomato", 2, "pieces"), req("onion", 1, "piece"), req("vegetable stock", 400, "ml"));
+        insert(db, "Cucumber Yogurt Salad", "A cool cucumber salad with yogurt and herbs.",
+                "1. Dice the cucumber.\n2. Stir yogurt with lemon juice and mint.\n3. Combine and chill before serving.",
+                req("cucumber", 1, "piece"), req("plain yogurt", 150, "g"), req("lemon", 1, "piece"), req("mint", 5, "g"));
+        insert(db, "Peanut Butter Toast", "A quick snack with peanut butter and banana.",
+                "1. Toast the bread.\n2. Spread with peanut butter.\n3. Top with sliced banana.",
+                req("bread", 2, "slices"), req("peanut butter", 30, "g"), req("banana", 1, "piece"));
+        insert(db, "Cheesy Broccoli Pasta", "Pasta with broccoli and melted cheese.",
+                "1. Boil pasta; add broccoli for the final 4 minutes.\n2. Drain, reserving a little cooking water.\n3. Stir in cheese until melted.",
+                req("pasta", 200, "g"), req("broccoli", 150, "g"), req("cheddar cheese", 50, "g"));
+        insert(db, "Apple Cinnamon Oats", "Warm oats with apple and cinnamon.",
+                "1. Simmer oats in milk until creamy.\n2. Dice and add the apple.\n3. Finish with cinnamon.",
+                req("oats", 50, "g"), req("milk", 200, "ml"), req("apple", 1, "piece"), req("cinnamon", 1, "tsp"));
+        insert(db, "Bean and Pepper Tacos", "A simple bean filling with sweet pepper.",
+                "1. Dice and soften the pepper.\n2. Add beans and cumin; warm through.\n3. Spoon into tortillas.",
+                req("black beans", 200, "g"), req("bell pepper", 1, "piece"), req("tortillas", 2, "pieces"), req("cumin", 1, "tsp"));
+        insert(db, "Lemon Garlic Chickpeas", "Pan-warmed chickpeas with lemon and garlic.",
+                "1. Warm olive oil and sliced garlic.\n2. Add chickpeas and heat through.\n3. Finish with lemon juice.",
+                req("chickpea", 250, "g"), req("garlic", 2, "cloves"), req("lemon", 1, "piece"), req("olive oil", 1, "tbsp"));
+        insert(db, "Mushroom Fried Rice", "A quick fried rice with mushroom and egg.",
+                "1. Scramble the egg and set aside.\n2. Stir-fry mushrooms and spring onion.\n3. Add cooked rice and egg; heat thoroughly.",
+                req("rice", 200, "g"), req("mushroom", 100, "g"), req("egg", 1, "piece"), req("spring onion", 2, "pieces"));
+        insert(db, "Roasted Carrot Salad", "Roasted carrots with feta and greens.",
+                "1. Roast carrot pieces until tender.\n2. Arrange over spinach.\n3. Crumble feta over the top and serve.",
+                req("carrot", 250, "g"), req("spinach", 40, "g"), req("feta cheese", 40, "g"), req("olive oil", 1, "tbsp"));
+        insert(db, "Tomato and Cheese Toast", "A warm open sandwich with tomato and cheese.",
+                "1. Place tomato slices on bread.\n2. Add grated cheese.\n3. Grill until the bread is crisp and cheese bubbles.",
+                req("bread", 2, "slices"), req("tomato", 1, "piece"), req("cheddar cheese", 40, "g"));
+    }
+
+    private static RecipeIngredientData req(String name, double quantity, String unit) {
+        return new RecipeIngredientData(name, quantity, unit);
+    }
+
+    private static void insert(SQLiteDatabase db, String name, String summary, String steps,
+                               RecipeIngredientData... ingredients) {
+        ContentValues recipe = new ContentValues();
+        recipe.put("name", name);
+        recipe.put("summary", summary);
+        recipe.put("steps", steps);
+        long recipeId = db.insertOrThrow("recipes", null, recipe);
+        for (RecipeIngredientData ingredient : ingredients) {
+            ContentValues value = new ContentValues();
+            value.put("recipe_id", recipeId);
+            value.put("name", ingredient.name);
+            value.put("quantity", ingredient.quantity);
+            value.put("unit", ingredient.unit);
+            db.insertOrThrow("recipe_ingredients", null, value);
+        }
+    }
+
+    private static final class RecipeIngredientData {
+        final String name;
+        final double quantity;
+        final String unit;
+        RecipeIngredientData(String name, double quantity, String unit) {
+            this.name = name; this.quantity = quantity; this.unit = unit;
+        }
+    }
+}
