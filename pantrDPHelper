@@ -1,0 +1,174 @@
+package za.co.richfield.smartpantry.data;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+import za.co.richfield.smartpantry.model.Ingredient;
+import za.co.richfield.smartpantry.model.Recipe;
+import za.co.richfield.smartpantry.model.RecipeIngredient;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class PantryDbHelper extends SQLiteOpenHelper {
+    private static final String DATABASE_NAME = "smart_pantry.db";
+    private static final int DATABASE_VERSION = 1;
+
+    public PantryDbHelper(Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        super.onConfigure(db);
+        db.setForeignKeyConstraintsEnabled(true);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE pantry_items (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "name TEXT NOT NULL, quantity REAL NOT NULL CHECK(quantity > 0), "
+                + "unit TEXT NOT NULL, expiry_date TEXT)");
+        db.execSQL("CREATE TABLE recipes (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "name TEXT NOT NULL, summary TEXT NOT NULL, steps TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE recipe_ingredients (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "recipe_id INTEGER NOT NULL, name TEXT NOT NULL, quantity REAL NOT NULL, "
+                + "unit TEXT NOT NULL, FOREIGN KEY(recipe_id) REFERENCES recipes(id) ON DELETE CASCADE)");
+        db.execSQL("CREATE TABLE app_settings (setting_key TEXT PRIMARY KEY, setting_value TEXT NOT NULL)");
+        ContentValues alerts = new ContentValues();
+        alerts.put("setting_key", "expiry_alerts");
+        alerts.put("setting_value", "1");
+        db.insert("app_settings", null, alerts);
+        ContentValues units = new ContentValues();
+        units.put("setting_key", "preferred_units");
+        units.put("setting_value", "Metric");
+        db.insert("app_settings", null, units);
+
+        db.beginTransaction();
+        try {
+            RecipeSeeder.seed(db);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // Future schema changes should use explicit migrations to preserve pantry data.
+    }
+
+    public long saveIngredient(long id, String name, double quantity, String unit, String expiryDate) {
+        ContentValues values = new ContentValues();
+        values.put("name", name.trim());
+        values.put("quantity", quantity);
+        values.put("unit", unit.trim());
+        values.put("expiry_date", expiryDate == null || expiryDate.trim().isEmpty()
+                ? null : expiryDate.trim());
+        SQLiteDatabase db = getWritableDatabase();
+        if (id < 0) return db.insertOrThrow("pantry_items", null, values);
+        int updated = db.update("pantry_items", values, "id=?", new String[]{String.valueOf(id)});
+        return updated == 0 ? -1 : id;
+    }
+
+    public boolean deleteIngredient(long id) {
+        return getWritableDatabase().delete("pantry_items", "id=?",
+                new String[]{String.valueOf(id)}) > 0;
+    }
+
+    public Ingredient getIngredient(long id) {
+        try (Cursor cursor = getReadableDatabase().query("pantry_items",
+                new String[]{"id", "name", "quantity", "unit", "expiry_date"},
+                "id=?", new String[]{String.valueOf(id)}, null, null, null)) {
+            return cursor.moveToFirst() ? readIngredient(cursor) : null;
+        }
+    }
+
+    public List<Ingredient> getPantryItems() {
+        List<Ingredient> items = new ArrayList<>();
+        try (Cursor cursor = getReadableDatabase().query("pantry_items",
+                new String[]{"id", "name", "quantity", "unit", "expiry_date"},
+                null, null, null, null, "name COLLATE NOCASE ASC")) {
+            while (cursor.moveToNext()) items.add(readIngredient(cursor));
+        }
+        return items;
+    }
+
+    public List<Recipe> getRecipes() {
+        List<Recipe> recipes = new ArrayList<>();
+        try (Cursor cursor = getReadableDatabase().query("recipes",
+                new String[]{"id", "name", "summary", "steps"}, null, null,
+                null, null, "name COLLATE NOCASE ASC")) {
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(0);
+                recipes.add(new Recipe(id, cursor.getString(1), cursor.getString(2),
+                        cursor.getString(3), getRecipeIngredients(id)));
+            }
+        }
+        return recipes;
+    }
+
+    public Recipe getRecipe(long recipeId) {
+        try (Cursor cursor = getReadableDatabase().query("recipes",
+                new String[]{"id", "name", "summary", "steps"}, "id=?",
+                new String[]{String.valueOf(recipeId)}, null, null, null)) {
+            if (!cursor.moveToFirst()) return null;
+            return new Recipe(cursor.getLong(0), cursor.getString(1), cursor.getString(2),
+                    cursor.getString(3), getRecipeIngredients(recipeId));
+        }
+    }
+
+    private List<RecipeIngredient> getRecipeIngredients(long recipeId) {
+        List<RecipeIngredient> ingredients = new ArrayList<>();
+        try (Cursor cursor = getReadableDatabase().query("recipe_ingredients",
+                new String[]{"name", "quantity", "unit"}, "recipe_id=?",
+                new String[]{String.valueOf(recipeId)}, null, null, "id ASC")) {
+            while (cursor.moveToNext()) {
+                ingredients.add(new RecipeIngredient(cursor.getString(0),
+                        cursor.getDouble(1), cursor.getString(2)));
+            }
+        }
+        return ingredients;
+    }
+
+    public boolean getExpiryAlertsEnabled() {
+        return "1".equals(getSetting("expiry_alerts", "1"));
+    }
+
+    public void setExpiryAlertsEnabled(boolean enabled) {
+        setSetting("expiry_alerts", enabled ? "1" : "0");
+    }
+
+    public String getPreferredUnits() {
+        return getSetting("preferred_units", "Metric");
+    }
+
+    public void setPreferredUnits(String units) {
+        setSetting("preferred_units", units);
+    }
+
+    private String getSetting(String key, String fallback) {
+        try (Cursor cursor = getReadableDatabase().query("app_settings",
+                new String[]{"setting_value"}, "setting_key=?",
+                new String[]{key}, null, null, null)) {
+            return cursor.moveToFirst() ? cursor.getString(0) : fallback;
+        }
+    }
+
+    private void setSetting(String key, String value) {
+        ContentValues values = new ContentValues();
+        values.put("setting_key", key);
+        values.put("setting_value", value);
+        getWritableDatabase().insertWithOnConflict("app_settings", null, values,
+                SQLiteDatabase.CONFLICT_REPLACE);
+    }
+
+    private Ingredient readIngredient(Cursor cursor) {
+        String expiry = cursor.isNull(4) ? "" : cursor.getString(4);
+        return new Ingredient(cursor.getLong(0), cursor.getString(1),
+                cursor.getDouble(2), cursor.getString(3), expiry);
+    }
+}
