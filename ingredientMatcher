@@ -1,0 +1,130 @@
+package za.co.richfield.smartpantry.logic;
+
+import za.co.richfield.smartpantry.model.Ingredient;
+import za.co.richfield.smartpantry.model.Recipe;
+import za.co.richfield.smartpantry.model.RecipeIngredient;
+
+import java.text.Normalizer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Strictly checks that every recipe ingredient is present in sufficient quantity.
+ * Unit conversion is supported within count, mass, and volume families.
+ */
+public final class IngredientMatcher {
+    private static final double EPSILON = 0.000001;
+    private static final Map<String, String> NAME_ALIASES = new HashMap<>();
+    private static final Map<String, Unit> UNITS = new HashMap<>();
+
+    static {
+        addNames("tomato", "tomatoes");
+        addNames("potato", "potatoes");
+        addNames("onion", "onions");
+        addNames("egg", "eggs");
+        addNames("chilli", "chili", "chilies", "chillies");
+        addNames("courgette", "zucchini");
+        addNames("aubergine", "eggplant");
+        addNames("coriander", "cilantro");
+        addNames("chickpea", "chickpeas", "garbanzo bean", "garbanzo beans");
+        addNames("spring onion", "spring onions", "scallion", "scallions");
+        addNames("bell pepper", "capsicum", "sweet pepper", "sweet peppers");
+
+        registerUnit("g", "mass", 1.0);
+        registerUnit("gram", "mass", 1.0);
+        registerUnit("grams", "mass", 1.0);
+        registerUnit("kg", "mass", 1000.0);
+        registerUnit("kilogram", "mass", 1000.0);
+        registerUnit("kilograms", "mass", 1000.0);
+        registerUnit("ml", "volume", 1.0);
+        registerUnit("millilitre", "volume", 1.0);
+        registerUnit("millilitres", "volume", 1.0);
+        registerUnit("milliliter", "volume", 1.0);
+        registerUnit("milliliters", "volume", 1.0);
+        registerUnit("l", "volume", 1000.0);
+        registerUnit("litre", "volume", 1000.0);
+        registerUnit("litres", "volume", 1000.0);
+        registerUnit("liter", "volume", 1000.0);
+        registerUnit("liters", "volume", 1000.0);
+        registerUnit("piece", "count", 1.0);
+        registerUnit("pieces", "count", 1.0);
+        registerUnit("pcs", "count", 1.0);
+        registerUnit("whole", "count", 1.0);
+        registerUnit("clove", "count", 1.0);
+        registerUnit("cloves", "count", 1.0);
+        registerUnit("slice", "count", 1.0);
+        registerUnit("slices", "count", 1.0);
+        registerUnit("tbsp", "spoon", 1.0);
+        registerUnit("tablespoon", "spoon", 1.0);
+        registerUnit("tablespoons", "spoon", 1.0);
+        registerUnit("tsp", "teaspoon", 1.0);
+        registerUnit("teaspoon", "teaspoon", 1.0);
+        registerUnit("teaspoons", "teaspoon", 1.0);
+    }
+
+    private IngredientMatcher() { }
+
+    public static boolean canMake(Recipe recipe, List<Ingredient> pantry) {
+        for (RecipeIngredient required : recipe.getIngredients()) {
+            double available = 0.0;
+            for (Ingredient stored : pantry) {
+                if (normalizeName(stored.getName()).equals(normalizeName(required.getName()))) {
+                    Double converted = convert(stored.getQuantity(), stored.getUnit(), required.getUnit());
+                    if (converted != null) available += converted;
+                }
+            }
+            if (available + EPSILON < required.getQuantity()) return false;
+        }
+        return true;
+    }
+
+    public static String normalizeName(String rawName) {
+        String normalized = Normalizer.normalize(rawName == null ? "" : rawName,
+                Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT).trim().replaceAll("\\s+", " ");
+        String alias = NAME_ALIASES.get(normalized);
+        if (alias != null) return alias;
+        if (normalized.endsWith("ies") && normalized.length() > 4) {
+            normalized = normalized.substring(0, normalized.length() - 3) + "y";
+        } else if (normalized.endsWith("oes") && normalized.length() > 4) {
+            normalized = normalized.substring(0, normalized.length() - 2);
+        } else if (normalized.endsWith("s") && normalized.length() > 3
+                && !normalized.endsWith("ss")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return NAME_ALIASES.getOrDefault(normalized, normalized);
+    }
+
+    private static void addNames(String canonical, String... variants) {
+        NAME_ALIASES.put(canonical, canonical);
+        for (String variant : variants) NAME_ALIASES.put(variant, canonical);
+    }
+
+    private static void registerUnit(String label, String family, double factor) {
+        UNITS.put(label, new Unit(family, factor));
+    }
+
+    private static Double convert(double amount, String fromLabel, String toLabel) {
+        String fromKey = normalizeUnit(fromLabel);
+        String toKey = normalizeUnit(toLabel);
+        Unit from = UNITS.get(fromKey);
+        Unit to = UNITS.get(toKey);
+        if (from == null || to == null) {
+            return fromKey.equals(toKey) ? amount : null;
+        }
+        if (!from.family.equals(to.family)) return null;
+        return amount * from.factor / to.factor;
+    }
+
+    private static String normalizeUnit(String unit) {
+        return unit == null ? "" : unit.toLowerCase(Locale.ROOT).trim();
+    }
+
+    private static final class Unit {
+        final String family;
+        final double factor;
+        Unit(String family, double factor) { this.family = family; this.factor = factor; }
+    }
+}
